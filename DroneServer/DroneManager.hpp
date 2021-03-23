@@ -6,6 +6,10 @@
 //System Includes
 #include <vector>
 #include <string>
+#include <memory>
+
+//External Includes
+#include "../../../handycpp/Handy.hpp"
 
 //Project Includes
 #include "Drone.hpp"
@@ -22,16 +26,32 @@ namespace DroneInterface {
 		public:
 			static DroneManager & Instance() { static DroneManager Obj; return Obj; }
 			
-			DroneManager();
+			DroneManager() = default;
 			~DroneManager() = default;
 			
-			std::vector<std::string> GetConnectedDroneSerialNumbers(void);
-			Drone * GetDrone(std::string const & Serial);
-			
+			inline std::vector<std::string> GetConnectedDroneSerialNumbers(void) const;
+			inline Drone * GetDrone(std::string const & Serial);
+		
+		private:
+			std::unique_ptr<SimulatedDrone> m_droneSim;
 	};
-
-
-
+	
+	inline std::vector<std::string> DroneManager::GetConnectedDroneSerialNumbers(void) const {
+		return std::vector<std::string>();
+	}
+	
+	inline Drone * DroneManager::GetDrone(std::string const & Serial) {
+		if (Serial == "Simulation"s) {
+			//Lazily create simulated drone so we don't make one unless it's requested
+			if (m_droneSim == nullptr)
+				m_droneSim.reset(new SimulatedDrone);
+			return m_droneSim.get(); //Upcast to Drone and return
+		}
+		else
+			return nullptr;
+	}
 }
+
+
 
 
