@@ -1,15 +1,9 @@
-//The drone interface module provides the software interface to DJI drones, connected over network sockets
-//Author: Bryan Poling
-//Copyright (c) 2021 Sentek Systems, LLC. All rights reserved. 
 #pragma once
 
 //System Includes
 #include <vector>
 #include <string>
 #include <memory>
-
-//External Includes
-#include "../../../handycpp/Handy.hpp"
 
 //Project Includes
 #include "Drone.hpp"
@@ -41,7 +35,7 @@ namespace DroneInterface {
 	}
 	
 	inline Drone * DroneManager::GetDrone(std::string const & Serial) {
-		if (Serial == "Simulation"s) {
+		if (Serial == "Simulation") {
 			//Lazily create simulated drone so we don't make one unless it's requested
 			if (m_droneSim == nullptr)
 				m_droneSim.reset(new SimulatedDrone);

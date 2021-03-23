@@ -1,7 +1,3 @@
-//The drone interface module provides the software interface to DJI drones, connected over network sockets
-//Author: Bryan Poling
-//Copyright (c) 2021 Sentek Systems, LLC. All rights reserved. 
-
 //System Includes
 
 //External Includes

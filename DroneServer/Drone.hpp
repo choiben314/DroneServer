@@ -1,6 +1,3 @@
-//The drone interface module provides the software interface to DJI drones, connected over network sockets
-//Author: Bryan Poling
-//Copyright (c) 2021 Sentek Systems, LLC. All rights reserved. 
 #pragma once
 
 //System Includes
@@ -13,7 +10,7 @@
 #include <atomic>
 
 //External Includes
-#include "../../../handycpp/Handy.hpp" //Provides std::filesystem and Handy::File
+#include "../../handycpp/Handy.hpp" //Provides std::filesystem and Handy::File
 #include <opencv2/opencv.hpp>
 
 //Project Includes
@@ -236,7 +233,6 @@ namespace DroneInterface {
 			void SetRealTime(bool Realtime); //True: Imagery will be provided at close-to-real-time rate. False: Imagery is provided as fast as possible
 			void SetSourceVideoFile(std::filesystem::path const & VideoPath); //Should be set before calling StartDJICamImageFeed()
 			bool IsSimVideoFinished(void); //Returns true if end of video file reached and sim is done
-		
 		private:
 			//Some modules that use imagery can't handle missing frames gracefully. Thus, we use provide a callback mechanism to ensure that such a module
 			//can have a guarantee that each frame received by the drone interface module will be provided downstream.
@@ -268,9 +264,5 @@ namespace DroneInterface {
 			bool GetNextVideoFrame(void); //Advance to and decode the next video from that needs to be used
 			bool ResizeTo720p(void);      //Make sure the frame is 720p... resize if needed.
 			bool Resize_4K_to_720p(void); //Drop a 4K m_frame down to 720p
-	};
-	
+	};	
 }
-
-
-
