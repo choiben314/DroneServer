@@ -17,7 +17,7 @@ namespace DroneInterface {
 	//Get drone serial number as a string (should be available on construction)
 	std::string SimulatedDrone::GetDroneSerial(void) {
 		std::scoped_lock lock(m_mutex);
-		return "Simulation"s;
+		return "Simulation";
 	}
 	
 	//Lat & Lon (radians) and WGS84 Altitude (m)
@@ -167,7 +167,7 @@ namespace DroneInterface {
 	//Get flight mode as a human-readable string
 	bool SimulatedDrone::GetFlightMode(std::string & FlightModeStr, TimePoint & Timestamp) {
 		std::scoped_lock lock(m_mutex);
-		FlightModeStr = "Hover (P mode)"s;
+		FlightModeStr = "Hover (P mode)";
 		Timestamp = std::chrono::steady_clock::now();
 		return true;
 	}

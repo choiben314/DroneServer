@@ -10,16 +10,20 @@
 // TCP Includes
 #include <tacopie/tacopie>
 
+// Project Includes
+#include "Drone.hpp"
+#include "DroneManager.hpp"
+
 using namespace std;
 
 #ifdef _WIN32
 #include <Winsock2.h>
 #endif /* _WIN32 */
 
-condition_variable cv;
+condition_variable cond_var;
 
 void signint_handler(int) {
-    cv.notify_all();
+    cond_var.notify_all();
 }
 
 void on_new_message(const shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res) {
@@ -73,7 +77,7 @@ int main(int argc, char* argv[]) {
 
     mutex mtx;
     unique_lock<mutex> lock(mtx);
-    cv.wait(lock);
+    cond_var.wait(lock);
 
 #ifdef _WIN32
     WSACleanup();
