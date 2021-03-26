@@ -1,13 +1,26 @@
-//System Includes
+// System Includes
+#include <iostream>
+#include <condition_variable>
+#include <iostream>
+#include <mutex>
 
-//External Includes
+// C Includes
+#include <signal.h>
+
+// External Includes
+#include <tacopie/tacopie>
 
 //Project Includes
 #include "Drone.hpp"
 
 namespace DroneInterface {
 	RealDrone::RealDrone() : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
-		//Initialization Here (Retrieve serial number, etc.)
+		m_serial = "TEST_SERIAL!";
+	}
+
+	RealDrone::RealDrone(tacopie::tcp_client& client) : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
+		m_serial = "TEST_SERIAL!!";
+		m_client = &client;
 	}
 	
 	RealDrone::~RealDrone() {
@@ -15,9 +28,33 @@ namespace DroneInterface {
 		if (m_thread.joinable())
 			m_thread.join();
 	}
+	void RealDrone::DataReceivedHandler(const std::shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res){
+		m_mutex.lock();
+		if (res.success) {
+			std::vector<char> msg_buffer = res.buffer;
+			std::string msg_string(msg_buffer.begin(), msg_buffer.end());
+
+			std::string hostname = client->get_host();
+			uint32_t port = client->get_port();
+
+			std::cout << "Received a new message from " << hostname << " on port " << std::to_string(port) << ": " << msg_string << std::endl;
+			//string msg_return = "Server received the following message: " + msg_string;
+			std::string msg_return = msg_string;
+
+			std::vector<char> return_vec(msg_return.begin(), msg_return.end());
+
+			client->async_write({ return_vec, nullptr });
+			client->async_read({ 1024, bind(&RealDrone::DataReceivedHandler, this, client, std::placeholders::_1) });
+		}
+		else {
+			std::cout << "Client disconnected" << std::endl;
+			client->disconnect();
+		}
+		m_mutex.unlock();
+	}
 	
 	//Get drone serial number as a string (should be available on construction)
-	std::string RealDrone::GetDroneSerial(void) { return std::string(); }
+	std::string RealDrone::GetDroneSerial(void) { return m_serial; }
 	
 	//Lat & Lon (radians) and WGS84 Altitude (m)
 	bool RealDrone::GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) { return false; }
@@ -54,7 +91,7 @@ namespace DroneInterface {
 	
 	bool RealDrone::GetMostRecentFrame(cv::Mat & Frame, unsigned int & FrameNumber, TimePoint & Timestamp) { return false; }
 	
-	//Regester callback for new frames
+	//Register callback for new frames
 	int RealDrone::RegisterCallback(std::function<void(cv::Mat const & Frame, TimePoint const & Timestamp)> Callback) {
 		std::scoped_lock lock(m_mutex);
 		int token = 0;
@@ -99,24 +136,38 @@ namespace DroneInterface {
 	
 	//Function for internal thread managing drone object
 	void RealDrone::DroneMain(void) {
-		while (! m_abort) {
-			m_mutex.lock();
-			
-			//Check to see if there is new data on the socket to process and process it.
-			//Decode received packets and update private state
-			
-			//If a new image was received and decoded, call the callbacks:
-			/*if (newImageProcessed) {
-				for (auto const & kv : m_ImageryCallbacks)
-					kv.second(NewImage, NewImageTimestamp);
-			}*/
-			
-			//At the end of the loop, if we did useful work do:
-			//m_mutex.unlock();
-			//If we did not do useful work do:
-			//m_mutex.unlock();
-			//std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
+		//tacopie::tcp_server s;
+
+		//// 0.0.0.0 listens on all interfaces (127.0.0.1 only accessible from localhost)
+		//s.start("0.0.0.0", 3001, [this](const shared_ptr<tacopie::tcp_client>& client) -> bool {
+		//	string hostname = client->get_host();
+		//	uint32_t port = client->get_port();
+
+		//	cout << "New client from " + hostname + " on port " + to_string(port) << endl;
+		//	client->async_read({ 1024, bind(&RealDrone::on_new_message, this, client, placeholders::_1) });
+
+		//	return true;
+		//	});
+		////signal(SIGINT, &signint_handler);
+
+		//while (! m_abort) {
+		////	m_mutex.lock();
+
+		////	//Check to see if there is new data on the socket to process and process it.
+		////	//Decode received packets and update private state		
+
+		////	//If a new image was received and decoded, call the callbacks:
+		////	/*if (newImageProcessed) {
+		////		for (auto const & kv : m_ImageryCallbacks)
+		////			kv.second(NewImage, NewImageTimestamp);
+		////	}*/
+		////	
+		////	//At the end of the loop, if we did useful work do:
+		////	//m_mutex.unlock();
+		////	//If we did not do useful work do:
+		////	m_mutex.unlock();
+		//	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		//}
 	}
 }
 

@@ -12,6 +12,7 @@
 
 //External Includes
 #include <opencv2/opencv.hpp>
+#include <tacopie/tacopie>
 
 //Project Includes
 
@@ -144,10 +145,13 @@ namespace DroneInterface {
 	class RealDrone : public Drone {
 		public:
 			RealDrone();
+			RealDrone(tacopie::tcp_client& client);
 			~RealDrone();
 			
 			std::string GetDroneSerial(void) override;
 			
+			void DataReceivedHandler(const std::shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res);
+
 			bool GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) override;
 			bool GetVelocity(double & V_North, double & V_East, double & V_Down, TimePoint & Timestamp)       override;
 			bool GetOrientation(double & Yaw, double & Pitch, double & Roll, TimePoint & Timestamp)           override;
@@ -180,10 +184,13 @@ namespace DroneInterface {
 			//Some modules that use imagery can't handle missing frames gracefully. Thus, we use provide a callback mechanism to ensure that such a module
 			//can have a guarantee that each frame received by the drone interface module will be provided downstream.
 			std::unordered_map<int, std::function<void(cv::Mat const & Frame, TimePoint const & Timestamp)>> m_ImageryCallbacks;
-			
+
 			std::thread       m_thread;
 			std::atomic<bool> m_abort;
 			std::mutex        m_mutex; //Lock in each public method for thread safety
+
+			tacopie::tcp_client* m_client;
+			std::string m_serial;
 			
 			void DroneMain(void);
 	};
