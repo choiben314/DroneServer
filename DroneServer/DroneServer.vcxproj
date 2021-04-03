@@ -160,9 +160,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Drone.hpp" />
+    <ClInclude Include="DroneComms.hpp" />
     <ClInclude Include="DroneManager.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DroneComms.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RealDrone.cpp" />
     <ClCompile Include="SimulatedDrone.cpp" />

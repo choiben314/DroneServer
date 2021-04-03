@@ -15,6 +15,7 @@
 #include <tacopie/tacopie>
 
 //Project Includes
+#include "DroneComms.hpp"
 
 namespace DroneInterface {
 	//VirtualStickMode has several different configuration settings that impact how each control is interpreted. We
@@ -161,7 +162,7 @@ namespace DroneInterface {
 			bool GetActiveLimitations(bool & MaxHAG, bool & MaxDistFromHome, TimePoint & Timestamp)  override;
 			bool GetActiveWarnings(std::vector<std::string> & ActiveWarnings, TimePoint & Timestamp) override;
 			bool GetGNSSStatus(unsigned int & SatCount, int & SignalLevel, TimePoint & Timestamp)    override;
-			
+
 			bool IsDJICamConnected(void)                                                                            override;
 			void StartDJICamImageFeed(double TargetFPS)                                                             override;
 			void StopDJICamImageFeed(void)                                                                          override;
@@ -191,6 +192,8 @@ namespace DroneInterface {
 
 			tacopie::tcp_client* m_client;
 			std::string m_serial;
+
+			Packet* packet_fragment;
 			
 			void DroneMain(void);
 	};

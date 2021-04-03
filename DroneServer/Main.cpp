@@ -13,6 +13,7 @@
 // Project Includes
 #include "Drone.hpp"
 #include "DroneManager.hpp"
+#include "DroneComms.hpp"
 
 using namespace std;
 
@@ -34,7 +35,7 @@ int main(int argc, char* argv[]) {
 #endif /* _WIN32 */
 
     vector<string> serialNumbers = DroneInterface::DroneManager::Instance().GetConnectedDroneSerialNumbers();
-
+    
 #ifdef _WIN32
     WSACleanup();
 #endif /* _WIN32 */

@@ -17,7 +17,7 @@ namespace DroneInterface {
 	RealDrone::RealDrone() : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
 		m_serial = "TEST_SERIAL!";
 	}
-
+	
 	RealDrone::RealDrone(tacopie::tcp_client& client) : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
 		m_serial = "TEST_SERIAL!!";
 		m_client = &client;
@@ -31,19 +31,83 @@ namespace DroneInterface {
 	void RealDrone::DataReceivedHandler(const std::shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res){
 		m_mutex.lock();
 		if (res.success) {
-			std::vector<char> msg_buffer = res.buffer;
-			std::string msg_string(msg_buffer.begin(), msg_buffer.end());
+			
+			for (char c : res.buffer) {
+				packet_fragment->m_data.push_back(c);
+				if (packet_fragment->IsFinished()) {
+					std::cout << "IS FINISHED" << std::endl;
+					uint8_t PID;
+					packet_fragment->GetPID(PID);
+					
+					switch (PID) {
+						case 0U: {
+							Packet_CoreTelemetry packet;
+							if (packet.Deserialize(*packet_fragment)) {
+								std::cout << packet;
+							}
+							else {
+								std::cerr << "Error: Tried to deserialize invalid Core Telemetry packet." << std::endl;
+							}
+							break;
+						}
+						case 1U: {
+							Packet_ExtendedTelemetry packet;
+							if (packet.Deserialize(*packet_fragment)) {
+								std::cout << packet;
+							}
+							else {
+								std::cerr << "Error: Tried to deserialize invalid Extended Telemetry packet." << std::endl;
+							}
+							break;
+						}
+						case 2U: {
+							Packet_Image packet;
+							if (packet.Deserialize(*packet_fragment)) {
+								std::cout << packet;
+							}
+							else {
+								std::cerr << "Error: Tried to deserialize invalid Image packet." << std::endl;
+							}
+							break;
+						}
+						case 3U: {
+							Packet_Acknowledgment packet;
+							if (packet.Deserialize(*packet_fragment)) {
+								std::cout << packet;
+							}
+							else {
+								std::cerr << "Error: Tried to deserialize invalid Acknowledgment packet." << std::endl;
+							}
+						}
+						case 4U: {
+							Packet_MessageString packet;
+							if (packet.Deserialize(*packet_fragment)) {
+								std::cout << packet;
+							}
+							else {
+								std::cerr << "Error: Tried to deserialize invalid Message String packet." << std::endl;
+							}
+						}
+						default:
+							break;
+					}
+					packet_fragment = new Packet();
+				}
+			}
 
-			std::string hostname = client->get_host();
-			uint32_t port = client->get_port();
+			//std::vector<char> msg_buffer = res.buffer;
+			//std::string msg_string(msg_buffer.begin(), msg_buffer.end());
 
-			std::cout << "Received a new message from " << hostname << " on port " << std::to_string(port) << ": " << msg_string << std::endl;
-			//string msg_return = "Server received the following message: " + msg_string;
-			std::string msg_return = msg_string;
+			//std::string hostname = client->get_host();
+			//uint32_t port = client->get_port();
 
-			std::vector<char> return_vec(msg_return.begin(), msg_return.end());
+			//std::cout << "Received a new message from " << hostname << " on port " << std::to_string(port) << ": " << msg_string << std::endl;
+			////string msg_return = "Server received the following message: " + msg_string;
+			//std::string msg_return = msg_string;
 
-			client->async_write({ return_vec, nullptr });
+			//std::vector<char> return_vec(msg_return.begin(), msg_return.end());
+
+			//client->async_write({ return_vec, nullptr });
 			client->async_read({ 1024, bind(&RealDrone::DataReceivedHandler, this, client, std::placeholders::_1) });
 		}
 		else {
