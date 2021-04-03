@@ -31,11 +31,9 @@ namespace DroneInterface {
 	void RealDrone::DataReceivedHandler(const std::shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res){
 		m_mutex.lock();
 		if (res.success) {
-			
 			for (char c : res.buffer) {
 				packet_fragment->m_data.push_back(c);
 				if (packet_fragment->IsFinished()) {
-					std::cout << "IS FINISHED" << std::endl;
 					uint8_t PID;
 					packet_fragment->GetPID(PID);
 					
@@ -91,7 +89,7 @@ namespace DroneInterface {
 						default:
 							break;
 					}
-					packet_fragment = new Packet();
+					packet_fragment->Clear();
 				}
 			}
 
