@@ -193,7 +193,7 @@ namespace DroneInterface {
 			tacopie::tcp_client* m_client;
 			std::string m_serial;
 
-			Packet* packet_fragment;
+			Packet* packet_fragment = new Packet();
 			
 			void DroneMain(void);
 	};

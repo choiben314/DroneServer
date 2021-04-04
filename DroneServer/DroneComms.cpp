@@ -200,7 +200,6 @@ namespace DroneInterface {
 	
 	bool Packet::IsFinished(void) {
 		if (m_data.size() < 7U)
-			std::cout <<  "OK" << std::endl;
 			return false;
 		if (! M_highLevelFieldsValid) {
 			auto iter = m_data.cbegin() + 2;
