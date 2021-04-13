@@ -131,6 +131,7 @@ namespace DroneInterface {
 		Latitude = this->m_packet_ct->Longitude;
 		Altitude = this->m_packet_ct->Altitude;
 		//Timepoint?
+		return true;
 	}
 	
 	//NED velocity vector (m/s)
@@ -138,6 +139,7 @@ namespace DroneInterface {
 		V_North = this->m_packet_ct->V_N;
 		V_East = this->m_packet_ct->V_E;
 		V_Down = this->m_packet_ct->V_D;
+		return true;
 	}
 	
 	//Yaw, Pitch, Roll (radians) using DJI definitions
@@ -145,22 +147,26 @@ namespace DroneInterface {
 		Yaw = this->m_packet_ct->Yaw;
 		Pitch = this->m_packet_ct->Pitch;
 		Roll = this->m_packet_ct->Roll;
+		return true;
 	}
 	
 	//Barometric height above ground (m) - Drone altitude minus takeoff altitude
 	bool RealDrone::GetHAG(double & HAG, TimePoint & Timestamp) {
 		HAG = this->m_packet_ct->HAG;
+		return true;
 	}
 	
 	//Drone Battery level (0 = Empty, 1 = Full)
 	bool RealDrone::GetVehicleBatteryLevel(double & BattLevel, TimePoint & Timestamp) {
 		BattLevel = this->m_packet_et->BatLevel / 100;
+		return true;
 	}
 	
 	//Whether the drone has hit height or radius limits
 	bool RealDrone::GetActiveLimitations(bool & MaxHAG, bool & MaxDistFromHome, TimePoint & Timestamp) {
 		MaxHAG = this->m_packet_et->MaxHeight;
 		MaxDistFromHome = this->m_packet_et->MaxDist;
+		return true;
 	}
 	
 	//Wind & other vehicle warnings as strings
@@ -170,12 +176,14 @@ namespace DroneInterface {
 		if (this->m_packet_ms->Type == 2) {
 			ActiveWarnings.push_back("Messages: " + this->m_packet_ms->Message);
 		}
+		return true;
 	}
 	
 	//GNSS status (-1 for none, 0-5: DJI definitions)
 	bool RealDrone::GetGNSSStatus(unsigned int & SatCount, int & SignalLevel, TimePoint & Timestamp) {
 		SatCount = this->m_packet_et->GNSSSatCount;
 		SignalLevel = this->m_packet_et->GNSSSignal;
+		return true;
 	}
 	
 	//Returns true if recognized DJI camera is present - Should be available on construction
@@ -248,7 +256,12 @@ namespace DroneInterface {
 		this->SendPacket_CameraControl(0, 0);
 	}
 	
-	bool RealDrone::GetMostRecentFrame(cv::Mat & Frame, unsigned int & FrameNumber, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetMostRecentFrame(cv::Mat & Frame, unsigned int & FrameNumber, TimePoint & Timestamp) {
+		Frame = this->m_packet_img->Frame;
+		//FrameNumber??
+
+		return true;
+	}
 	
 	//Register callback for new frames
 	int RealDrone::RegisterCallback(std::function<void(cv::Mat const & Frame, TimePoint const & Timestamp)> Callback) {
@@ -269,20 +282,21 @@ namespace DroneInterface {
 	//Get flight mode as a human-readable string
 	bool RealDrone::GetFlightMode(std::string & FlightModeStr, TimePoint & Timestamp) {
 		FlightModeStr = "Flight Mode: " + this->m_packet_et->FlightMode;
+		return true;
 	}
 	
-	////Stop current mission, if running. Then load, verify, and start new waypoint mission.
-	//void RealDrone::ExecuteWaypointMission(WaypointMission & Mission) {
-	//	
-	//}
-	//
-	////Populate Result with whether or not a waypoint mission is currently being executed
-	//bool RealDrone::IsCurrentlyExecutingWaypointMission(bool & Result, TimePoint & Timestamp) {
-	//	
-	//}
-	//
-	////Retrieve the ID of the currently running waypoint mission (if running).
-	//bool RealDrone::GetCurrentWaypointMissionID(uint16_t & MissionID, TimePoint & Timestamp) { return false; }
+	//Stop current mission, if running. Then load, verify, and start new waypoint mission.
+	void RealDrone::ExecuteWaypointMission(WaypointMission & Mission) {
+		
+	}
+	
+	//Populate Result with whether or not a waypoint mission is currently being executed
+	bool RealDrone::IsCurrentlyExecutingWaypointMission(bool & Result, TimePoint & Timestamp) {
+		return false;
+	}
+	
+	//Retrieve the ID of the currently running waypoint mission (if running).
+	bool RealDrone::GetCurrentWaypointMissionID(uint16_t & MissionID, TimePoint & Timestamp) { return false; }
 	
 
 	//Put in virtualStick Mode and send command (stop mission if running)
