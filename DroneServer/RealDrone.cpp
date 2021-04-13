@@ -62,6 +62,8 @@ namespace DroneInterface {
 							Packet_Image packet;
 							if (packet.Deserialize(*packet_fragment)) {
 								std::cout << packet;
+								//cv::imshow("Frame", packet.Frame);
+								//cv::waitKey();
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Image packet." << std::endl;
@@ -76,6 +78,7 @@ namespace DroneInterface {
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Acknowledgment packet." << std::endl;
 							}
+							break;
 						}
 						case 4U: {
 							Packet_MessageString packet;
@@ -85,9 +88,8 @@ namespace DroneInterface {
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Message String packet." << std::endl;
 							}
-						}
-						default:
 							break;
+						}
 					}
 					packet_fragment->Clear();
 				}
@@ -145,11 +147,71 @@ namespace DroneInterface {
 	//Returns true if recognized DJI camera is present - Should be available on construction
 	bool RealDrone::IsDJICamConnected(void) { return false; }
 	
+
+	void RealDrone::SendPacket(DroneInterface::Packet &packet) {
+		std::vector<char> ch_data(packet.m_data.begin(), packet.m_data.end());
+		m_client->async_write({ ch_data, nullptr });
+	}
+	void RealDrone::SendPacket_EmergencyCommand(uint8_t Action) {
+		DroneInterface::Packet packet;
+		DroneInterface::Packet_EmergencyCommand packet_ec;
+
+		packet_ec.Action = Action;
+
+		packet_ec.Serialize(packet);
+
+		this->SendPacket(packet);
+	}
+	void RealDrone::SendPacket_CameraControl(uint8_t Action, double TargetFPS) {
+		DroneInterface::Packet packet;
+		DroneInterface::Packet_CameraControl packet_cc;
+
+		packet_cc.Action = Action;
+		packet_cc.TargetFPS = TargetFPS;
+
+		packet_cc.Serialize(packet);
+
+		this->SendPacket(packet);
+	}
+	void RealDrone::SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints) {
+		DroneInterface::Packet packet;
+		DroneInterface::Packet_ExecuteWaypointMission packet_ewm;
+
+		packet_ewm.LandAtEnd = LandAtEnd;
+		packet_ewm.CurvedFlight = CurvedFlight;
+		packet_ewm.Waypoints = Waypoints;
+
+		packet_ewm.Serialize(packet);
+
+		this->SendPacket(packet);
+
+	}
+	void RealDrone::SendPacket_VirtualStickCommand(uint8_t Mode, float Yaw, float V_x, float V_y, float HAG, float timeout) {
+		DroneInterface::Packet packet;
+		DroneInterface::Packet_VirtualStickCommand packet_vsc;
+
+		packet_vsc.Mode = Mode;
+		packet_vsc.Yaw = Yaw;
+		packet_vsc.V_x = V_x;
+		packet_vsc.V_y = V_y;
+		packet_vsc.HAG = HAG;
+		packet_vsc.timeout = timeout;
+
+		packet_vsc.Serialize(packet);
+
+		this->SendPacket(packet);
+	}
+
+
 	//Start sending frames of live video (as close as possible to the given framerate (frame / s))
-	void RealDrone::StartDJICamImageFeed(double TargetFPS) { }
+	void RealDrone::StartDJICamImageFeed(double TargetFPS) { 
+		this->SendPacket_CameraControl(1, TargetFPS);
+	}
 	
 	//Stop sending frames of live video
-	void RealDrone::StopDJICamImageFeed(void) { }
+	void RealDrone::StopDJICamImageFeed(void) { 
+		this->SendPacket_CameraControl(0, 0);
+	}
 	
 	bool RealDrone::GetMostRecentFrame(cv::Mat & Frame, unsigned int & FrameNumber, TimePoint & Timestamp) { return false; }
 	

@@ -552,65 +552,72 @@ namespace DroneInterface {
 	// ****************************************************************************************************************************************
 	// ********************************************   Packet_ExecuteWaypointMission Implementation   ******************************************
 	// ****************************************************************************************************************************************
-	/*bool Packet_ExecuteWaypointMission::operator==(Packet_ExecuteWaypointMission const & Other) const {
+	bool Packet_ExecuteWaypointMission::operator==(Packet_ExecuteWaypointMission const & Other) const {
 		if ((this->LandAtEnd != Other.LandAtEnd) || (this->CurvedFlight != Other.CurvedFlight))
 			return false;
 		if (this->Waypoints.size() != Other.Waypoints.size())
 			return false;
 		for (size_t n = 0U; n < this->Waypoints.size(); n++) {
-			if (! (this->Waypoints[n] == Other.Waypoints[n]))
+			if (!(this->Waypoints[n].Latitude == Other.Waypoints[n].Latitude &&
+				this->Waypoints[n].Longitude == Other.Waypoints[n].Longitude &&
+				this->Waypoints[n].Altitude == Other.Waypoints[n].Altitude &&
+				this->Waypoints[n].CornerRadius == Other.Waypoints[n].CornerRadius &&
+				this->Waypoints[n].Speed == Other.Waypoints[n].Speed &&
+				this->Waypoints[n].LoiterTime == Other.Waypoints[n].LoiterTime &&
+				this->Waypoints[n].GimbalPitch == Other.Waypoints[n].GimbalPitch)) {
 				return false;
+			}
 		}
 		return true;
-	}*/
+	}
 	
-	//void Packet_ExecuteWaypointMission::Serialize(Packet & TargetPacket) const {
-	//	TargetPacket.Clear();
-	//	TargetPacket.AddHeader(uint32_t(9U + 2U + 40U*((unsigned int) Waypoints.size())), uint8_t(253U));
-	//	encodeField_uint8(TargetPacket.m_data, LandAtEnd);
-	//	encodeField_uint8(TargetPacket.m_data, CurvedFlight);
-	//	for (auto const & waypoint : Waypoints) {
-	//		encodeField_float64(TargetPacket.m_data, waypoint.Latitude*180.0/PI);
-	//		encodeField_float64(TargetPacket.m_data, waypoint.Longitude*180.0/PI);
-	//		encodeField_float64(TargetPacket.m_data, waypoint.Altitude);
-	//		encodeField_float32(TargetPacket.m_data, waypoint.CornerRadius);
-	//		encodeField_float32(TargetPacket.m_data, waypoint.Speed);
-	//		encodeField_float32(TargetPacket.m_data, waypoint.LoiterTime);
-	//		encodeField_float32(TargetPacket.m_data, waypoint.GimbalPitch*180.0/PI);
-	//	}
-	//	TargetPacket.AddHash();
-	//}
-	//
-	//bool Packet_ExecuteWaypointMission::Deserialize(Packet const & SourcePacket) {
-	//	if (! SourcePacket.CheckHashSizeAndPID((uint8_t) 253U))
-	//		return false;
-	//	if (SourcePacket.m_data.size() < 9U + 2U + 40U)
-	//		return false;
-	//	
-	//	auto iter    = SourcePacket.m_data.cbegin() + 7U; //Const iterater to begining of payload
-	//	LandAtEnd    = decodeField_uint8(iter);
-	//	CurvedFlight = decodeField_uint8(iter);
-	//	
-	//	Waypoints.clear();
-	//	unsigned int waypointBytes = (unsigned int) SourcePacket.m_data.size() - 9U - 2U;
-	//	if (waypointBytes % 40U != 0U) {
-	//		std::cerr << "Error in Packet_ExecuteWaypointMission::Deserialize(): Unacceptable payload size.\r\n";
-	//		return false;
-	//	}
-	//	unsigned int numWaypoints = waypointBytes / 40U;
-	//	Waypoints.reserve(numWaypoints);
-	//	for (unsigned int n = 0U; n < numWaypoints; n++) {
-	//		Waypoints.emplace_back();
-	//		Waypoints.back().Latitude     = decodeField_float64(iter)*PI/180.0;
-	//		Waypoints.back().Longitude    = decodeField_float64(iter)*PI/180.0;
-	//		Waypoints.back().Altitude     = decodeField_float64(iter);
-	//		Waypoints.back().CornerRadius = decodeField_float32(iter);
-	//		Waypoints.back().Speed        = decodeField_float32(iter);
-	//		Waypoints.back().LoiterTime   = decodeField_float32(iter);
-	//		Waypoints.back().GimbalPitch  = decodeField_float32(iter)*PI/180.0;
-	//	}
-	//	return true;
-	//}
+	void Packet_ExecuteWaypointMission::Serialize(Packet & TargetPacket) const {
+		TargetPacket.Clear();
+		TargetPacket.AddHeader(uint32_t(9U + 2U + 40U*((unsigned int) Waypoints.size())), uint8_t(253U));
+		encodeField_uint8(TargetPacket.m_data, LandAtEnd);
+		encodeField_uint8(TargetPacket.m_data, CurvedFlight);
+		for (auto const & waypoint : Waypoints) {
+			encodeField_float64(TargetPacket.m_data, waypoint.Latitude*180.0/PI);
+			encodeField_float64(TargetPacket.m_data, waypoint.Longitude*180.0/PI);
+			encodeField_float64(TargetPacket.m_data, waypoint.Altitude);
+			encodeField_float32(TargetPacket.m_data, waypoint.CornerRadius);
+			encodeField_float32(TargetPacket.m_data, waypoint.Speed);
+			encodeField_float32(TargetPacket.m_data, waypoint.LoiterTime);
+			encodeField_float32(TargetPacket.m_data, waypoint.GimbalPitch*180.0/PI);
+		}
+		TargetPacket.AddHash();
+	}
+	
+	bool Packet_ExecuteWaypointMission::Deserialize(Packet const & SourcePacket) {
+		if (! SourcePacket.CheckHashSizeAndPID((uint8_t) 253U))
+			return false;
+		if (SourcePacket.m_data.size() < 9U + 2U + 40U)
+			return false;
+		
+		auto iter    = SourcePacket.m_data.cbegin() + 7U; //Const iterater to begining of payload
+		LandAtEnd    = decodeField_uint8(iter);
+		CurvedFlight = decodeField_uint8(iter);
+		
+		Waypoints.clear();
+		unsigned int waypointBytes = (unsigned int) SourcePacket.m_data.size() - 9U - 2U;
+		if (waypointBytes % 40U != 0U) {
+			std::cerr << "Error in Packet_ExecuteWaypointMission::Deserialize(): Unacceptable payload size.\r\n";
+			return false;
+		}
+		unsigned int numWaypoints = waypointBytes / 40U;
+		Waypoints.reserve(numWaypoints);
+		for (unsigned int n = 0U; n < numWaypoints; n++) {
+			Waypoints.emplace_back();
+			Waypoints.back().Latitude     = decodeField_float64(iter)*PI/180.0;
+			Waypoints.back().Longitude    = decodeField_float64(iter)*PI/180.0;
+			Waypoints.back().Altitude     = decodeField_float64(iter);
+			Waypoints.back().CornerRadius = decodeField_float32(iter);
+			Waypoints.back().Speed        = decodeField_float32(iter);
+			Waypoints.back().LoiterTime   = decodeField_float32(iter);
+			Waypoints.back().GimbalPitch  = decodeField_float32(iter)*PI/180.0;
+		}
+		return true;
+	}
 	
 	
 	// ****************************************************************************************************************************************
@@ -716,14 +723,15 @@ namespace DroneInterface {
 		return Str;
 	}
 	
-	//std::ostream & operator<<(std::ostream & Str, Packet_ExecuteWaypointMission const & v) { 
-	//	Str << "LandAtEnd ---: " << (unsigned int) v.LandAtEnd        << "\r\n";
-	//	Str << "CurvedFlight : " << (unsigned int) v.CurvedFlight     << "\r\n";
-	//	Str << "Waypoints ---: " << (unsigned int) v.Waypoints.size() << " items\r\n";
-	//	for (auto const & waypoint : v.Waypoints)
-	//		Str << waypoint << "\r\n";
-	//	return Str;
-	//}
+	std::ostream & operator<<(std::ostream & Str, Packet_ExecuteWaypointMission const & v) { 
+		Str << "LandAtEnd ---: " << (unsigned int) v.LandAtEnd        << "\r\n";
+		Str << "CurvedFlight : " << (unsigned int) v.CurvedFlight     << "\r\n";
+		Str << "Waypoints ---: " << (unsigned int) v.Waypoints.size() << " items\r\n";
+		for (auto const& waypoint : v.Waypoints)
+			Str << "Waypoint Placeholder" << "\r\n";
+			//Str << waypoint << "\r\n";
+		return Str;
+	}
 	
 	std::ostream & operator<<(std::ostream & Str, Packet_VirtualStickCommand const & v) { 
 		Str << "Mode ---: " << (unsigned int) v.Mode    << "\r\n";

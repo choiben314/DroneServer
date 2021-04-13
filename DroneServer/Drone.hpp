@@ -152,6 +152,11 @@ namespace DroneInterface {
 			std::string GetDroneSerial(void) override;
 			
 			void DataReceivedHandler(const std::shared_ptr<tacopie::tcp_client>& client, const tacopie::tcp_client::read_result& res);
+			void SendPacket(DroneInterface::Packet& packet);
+			void SendPacket_EmergencyCommand(uint8_t Action);
+			void SendPacket_CameraControl(uint8_t Action, double TargetFPS);
+			void SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints);
+			void SendPacket_VirtualStickCommand(uint8_t Mode, float Yaw, float V_x, float V_y, float HAG, float timeout);
 
 			bool GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) override;
 			bool GetVelocity(double & V_North, double & V_East, double & V_Down, TimePoint & Timestamp)       override;
