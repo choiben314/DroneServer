@@ -9,7 +9,7 @@
 #include <opencv2/opencv.hpp>
 
 //Project Includes
-#include "Drone.hpp"
+//#include "Drone.hpp" // Circular dependency
 
 namespace DroneInterface {
 	//Packet for holding binary, serialized packet data
@@ -153,19 +153,19 @@ namespace DroneInterface {
 	//Note: With this packet we use the existing Waypoint struct from Drone.hpp instead of essentially duplicating it.
 	//The meanings of the fields of a Waypoint object are defined in Drone.hpp. Since we use radians there and the ICD
 	//uses degrees for angle fields (to match the DJI API) we must convert when serializing and deserializing.
-	class Packet_ExecuteWaypointMission {
-		public:
-			uint8_t LandAtEnd;
-			uint8_t CurvedFlight;
-			std::vector<Waypoint> Waypoints;
-			
-			Packet_ExecuteWaypointMission()  = default;
-			~Packet_ExecuteWaypointMission() = default;
-			bool operator==(Packet_ExecuteWaypointMission const & Other) const; //If switching to C++20, default this
-			
-			void Serialize(Packet & TargetPacket) const; //Populate Packet from fields
-			bool Deserialize(Packet const & SourcePacket); //Populate fields from Packet
-	};
+	//class Packet_ExecuteWaypointMission {
+	//	public:
+	//		uint8_t LandAtEnd;
+	//		uint8_t CurvedFlight;
+	//		std::vector<Waypoint> Waypoints;
+	//		
+	//		Packet_ExecuteWaypointMission()  = default;
+	//		~Packet_ExecuteWaypointMission() = default;
+	//		bool operator==(Packet_ExecuteWaypointMission const & Other) const; //If switching to C++20, default this
+	//		
+	//		void Serialize(Packet & TargetPacket) const; //Populate Packet from fields
+	//		bool Deserialize(Packet const & SourcePacket); //Populate fields from Packet
+	//};
 	
 	class Packet_VirtualStickCommand {
 		public:
@@ -192,7 +192,7 @@ namespace DroneInterface {
 	std::ostream & operator<<(std::ostream & Str, Packet_MessageString          const & v);
 	std::ostream & operator<<(std::ostream & Str, Packet_EmergencyCommand       const & v);
 	std::ostream & operator<<(std::ostream & Str, Packet_CameraControl          const & v);
-	std::ostream & operator<<(std::ostream & Str, Packet_ExecuteWaypointMission const & v);
+	//std::ostream & operator<<(std::ostream & Str, Packet_ExecuteWaypointMission const & v);
 	std::ostream & operator<<(std::ostream & Str, Packet_VirtualStickCommand    const & v);
 	
 }

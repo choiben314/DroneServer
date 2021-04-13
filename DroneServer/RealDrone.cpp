@@ -32,16 +32,17 @@ namespace DroneInterface {
 		m_mutex.lock();
 		if (res.success) {
 			for (char c : res.buffer) {
-				packet_fragment->m_data.push_back(c);
-				if (packet_fragment->IsFinished()) {
+				m_packet_fragment->m_data.push_back(c);
+				if (m_packet_fragment->IsFinished()) {
 					uint8_t PID;
-					packet_fragment->GetPID(PID);
+					m_packet_fragment->GetPID(PID);
 					
 					switch (PID) {
 						case 0U: {
 							Packet_CoreTelemetry packet;
-							if (packet.Deserialize(*packet_fragment)) {
+							if (packet.Deserialize(*m_packet_fragment)) {
 								std::cout << packet;
+								this->m_packet_ct = &packet;
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Core Telemetry packet." << std::endl;
@@ -50,8 +51,9 @@ namespace DroneInterface {
 						}
 						case 1U: {
 							Packet_ExtendedTelemetry packet;
-							if (packet.Deserialize(*packet_fragment)) {
+							if (packet.Deserialize(*m_packet_fragment)) {
 								std::cout << packet;
+								this->m_packet_et = &packet;
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Extended Telemetry packet." << std::endl;
@@ -60,10 +62,11 @@ namespace DroneInterface {
 						}
 						case 2U: {
 							Packet_Image packet;
-							if (packet.Deserialize(*packet_fragment)) {
+							if (packet.Deserialize(*m_packet_fragment)) {
 								std::cout << packet;
 								//cv::imshow("Frame", packet.Frame);
 								//cv::waitKey();
+								this->m_packet_img = &packet;
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Image packet." << std::endl;
@@ -72,8 +75,9 @@ namespace DroneInterface {
 						}
 						case 3U: {
 							Packet_Acknowledgment packet;
-							if (packet.Deserialize(*packet_fragment)) {
+							if (packet.Deserialize(*m_packet_fragment)) {
 								std::cout << packet;
+								this->m_packet_ack = &packet;
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Acknowledgment packet." << std::endl;
@@ -82,8 +86,9 @@ namespace DroneInterface {
 						}
 						case 4U: {
 							Packet_MessageString packet;
-							if (packet.Deserialize(*packet_fragment)) {
+							if (packet.Deserialize(*m_packet_fragment)) {
 								std::cout << packet;
+								this->m_packet_ms = &packet;
 							}
 							else {
 								std::cerr << "Error: Tried to deserialize invalid Message String packet." << std::endl;
@@ -91,7 +96,7 @@ namespace DroneInterface {
 							break;
 						}
 					}
-					packet_fragment->Clear();
+					m_packet_fragment->Clear();
 				}
 			}
 
@@ -118,35 +123,65 @@ namespace DroneInterface {
 	}
 	
 	//Get drone serial number as a string (should be available on construction)
-	std::string RealDrone::GetDroneSerial(void) { return m_serial; }
+	std::string RealDrone::GetDroneSerial(void) { return this->m_packet_et->DroneSerial; }
 	
 	//Lat & Lon (radians) and WGS84 Altitude (m)
-	bool RealDrone::GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) {
+		Latitude = this->m_packet_ct->Latitude;
+		Latitude = this->m_packet_ct->Longitude;
+		Altitude = this->m_packet_ct->Altitude;
+		//Timepoint?
+	}
 	
 	//NED velocity vector (m/s)
-	bool RealDrone::GetVelocity(double & V_North, double & V_East, double & V_Down, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetVelocity(double & V_North, double & V_East, double & V_Down, TimePoint & Timestamp) {
+		V_North = this->m_packet_ct->V_N;
+		V_East = this->m_packet_ct->V_E;
+		V_Down = this->m_packet_ct->V_D;
+	}
 	
 	//Yaw, Pitch, Roll (radians) using DJI definitions
-	bool RealDrone::GetOrientation(double & Yaw, double & Pitch, double & Roll, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetOrientation(double & Yaw, double & Pitch, double & Roll, TimePoint & Timestamp) {
+		Yaw = this->m_packet_ct->Yaw;
+		Pitch = this->m_packet_ct->Pitch;
+		Roll = this->m_packet_ct->Roll;
+	}
 	
 	//Barometric height above ground (m) - Drone altitude minus takeoff altitude
-	bool RealDrone::GetHAG(double & HAG, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetHAG(double & HAG, TimePoint & Timestamp) {
+		HAG = this->m_packet_ct->HAG;
+	}
 	
 	//Drone Battery level (0 = Empty, 1 = Full)
-	bool RealDrone::GetVehicleBatteryLevel(double & BattLevel, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetVehicleBatteryLevel(double & BattLevel, TimePoint & Timestamp) {
+		BattLevel = this->m_packet_et->BatLevel / 100;
+	}
 	
 	//Whether the drone has hit height or radius limits
-	bool RealDrone::GetActiveLimitations(bool & MaxHAG, bool & MaxDistFromHome, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetActiveLimitations(bool & MaxHAG, bool & MaxDistFromHome, TimePoint & Timestamp) {
+		MaxHAG = this->m_packet_et->MaxHeight;
+		MaxDistFromHome = this->m_packet_et->MaxDist;
+	}
 	
 	//Wind & other vehicle warnings as strings
-	bool RealDrone::GetActiveWarnings(std::vector<std::string> & ActiveWarnings, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetActiveWarnings(std::vector<std::string> & ActiveWarnings, TimePoint & Timestamp) {
+		ActiveWarnings.push_back("BatWarning: " + this->m_packet_et->BatWarning);
+		ActiveWarnings.push_back("WindLevel: " + this->m_packet_et->WindLevel);
+		if (this->m_packet_ms->Type == 2) {
+			ActiveWarnings.push_back("Messages: " + this->m_packet_ms->Message);
+		}
+	}
 	
 	//GNSS status (-1 for none, 0-5: DJI definitions)
-	bool RealDrone::GetGNSSStatus(unsigned int & SatCount, int & SignalLevel, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetGNSSStatus(unsigned int & SatCount, int & SignalLevel, TimePoint & Timestamp) {
+		SatCount = this->m_packet_et->GNSSSatCount;
+		SignalLevel = this->m_packet_et->GNSSSignal;
+	}
 	
 	//Returns true if recognized DJI camera is present - Should be available on construction
-	bool RealDrone::IsDJICamConnected(void) { return false; }
-	
+	bool RealDrone::IsDJICamConnected(void) {
+		return this->m_packet_et->DJICam == 0 || this->m_packet_et->DJICam == 1;
+	}
 
 	void RealDrone::SendPacket(DroneInterface::Packet &packet) {
 		std::vector<char> ch_data(packet.m_data.begin(), packet.m_data.end());
@@ -173,19 +208,19 @@ namespace DroneInterface {
 
 		this->SendPacket(packet);
 	}
-	void RealDrone::SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints) {
-		DroneInterface::Packet packet;
-		DroneInterface::Packet_ExecuteWaypointMission packet_ewm;
+	//void RealDrone::SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints) {
+	//	DroneInterface::Packet packet;
+	//	DroneInterface::Packet_ExecuteWaypointMission packet_ewm;
 
-		packet_ewm.LandAtEnd = LandAtEnd;
-		packet_ewm.CurvedFlight = CurvedFlight;
-		packet_ewm.Waypoints = Waypoints;
+	//	packet_ewm.LandAtEnd = LandAtEnd;
+	//	packet_ewm.CurvedFlight = CurvedFlight;
+	//	packet_ewm.Waypoints = Waypoints;
 
-		packet_ewm.Serialize(packet);
+	//	packet_ewm.Serialize(packet);
 
-		this->SendPacket(packet);
+	//	this->SendPacket(packet);
 
-	}
+	//}
 	void RealDrone::SendPacket_VirtualStickCommand(uint8_t Mode, float Yaw, float V_x, float V_y, float HAG, float timeout) {
 		DroneInterface::Packet packet;
 		DroneInterface::Packet_VirtualStickCommand packet_vsc;
@@ -232,31 +267,48 @@ namespace DroneInterface {
 	}
 	
 	//Get flight mode as a human-readable string
-	bool RealDrone::GetFlightMode(std::string & FlightModeStr, TimePoint & Timestamp) { return false; }
+	bool RealDrone::GetFlightMode(std::string & FlightModeStr, TimePoint & Timestamp) {
+		FlightModeStr = "Flight Mode: " + this->m_packet_et->FlightMode;
+	}
 	
-	//Stop current mission, if running. Then load, verify, and start new waypoint mission.
-	void RealDrone::ExecuteWaypointMission(WaypointMission & Mission) { }
+	////Stop current mission, if running. Then load, verify, and start new waypoint mission.
+	//void RealDrone::ExecuteWaypointMission(WaypointMission & Mission) {
+	//	
+	//}
+	//
+	////Populate Result with whether or not a waypoint mission is currently being executed
+	//bool RealDrone::IsCurrentlyExecutingWaypointMission(bool & Result, TimePoint & Timestamp) {
+	//	
+	//}
+	//
+	////Retrieve the ID of the currently running waypoint mission (if running).
+	//bool RealDrone::GetCurrentWaypointMissionID(uint16_t & MissionID, TimePoint & Timestamp) { return false; }
 	
-	//Populate Result with whether or not a waypoint mission is currently being executed
-	bool RealDrone::IsCurrentlyExecutingWaypointMission(bool & Result, TimePoint & Timestamp) { return false; }
-	
-	//Retrieve the ID of the currently running waypoint mission (if running).
-	bool RealDrone::GetCurrentWaypointMissionID(uint16_t & MissionID, TimePoint & Timestamp) { return false; }
+
+	//Put in virtualStick Mode and send command (stop mission if running)
+	void RealDrone::IssueVirtualStickCommand(VirtualStickCommand_ModeA const & Command) { 
+		this->SendPacket_VirtualStickCommand(0, Command.Yaw, Command.V_North, Command.V_East, Command.HAG, Command.timeout);
+	}
 	
 	//Put in virtualStick Mode and send command (stop mission if running)
-	void RealDrone::IssueVirtualStickCommand(VirtualStickCommand_ModeA const & Command) { }
-	
-	//Put in virtualStick Mode and send command (stop mission if running)
-	void RealDrone::IssueVirtualStickCommand(VirtualStickCommand_ModeB const & Command) { }
+	void RealDrone::IssueVirtualStickCommand(VirtualStickCommand_ModeB const & Command) { 
+		this->SendPacket_VirtualStickCommand(1, Command.Yaw, Command.V_Forward, Command.V_Right, Command.HAG, Command.timeout);
+	}
 	
 	//Stop any running missions an leave virtualStick mode (if in it) and hover in place (P mode)
-	void RealDrone::Hover(void) { }
+	void RealDrone::Hover(void) {
+		this->SendPacket_EmergencyCommand(0);
+	}
 	
 	//Initiate landing sequence immediately at current vehicle location
-	void RealDrone::LandNow(void) { }
+	void RealDrone::LandNow(void) {
+		this->SendPacket_EmergencyCommand(1);
+	}
 	
 	//Initiate a Return-To-Home sequence that lands the vehicle at it's take-off location
-	void RealDrone::GoHomeAndLand(void) { }
+	void RealDrone::GoHomeAndLand(void) {
+		this->SendPacket_EmergencyCommand(2);
+	}
 	
 	//Function for internal thread managing drone object
 	void RealDrone::DroneMain(void) {
