@@ -161,6 +161,7 @@
   <ItemGroup>
     <ClInclude Include="Drone.hpp" />
     <ClInclude Include="DroneComms.hpp" />
+    <ClInclude Include="DroneDataStructures.h" />
     <ClInclude Include="DroneManager.hpp" />
   </ItemGroup>
   <ItemGroup>

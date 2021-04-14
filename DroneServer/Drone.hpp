@@ -16,81 +16,9 @@
 
 //Project Includes
 #include "DroneComms.hpp"
+#include "DroneDataStructures.h"
 
 namespace DroneInterface {
-	//VirtualStickMode has several different configuration settings that impact how each control is interpreted. We
-	//only implement two combinations of settings, which we call Mode A and Mode B. Both of these modes attempt to
-	//command the vehicle state in an absolute sense as much as possible (e.g. specifying height instead of vertical velocity)
-	//but it is not possible to specify absolute 2D position in VirtualStickMode, so we specify 2D velocity in either the
-	//vehicle body frame or in East-North. Because we are commanding velocity, we need to worry about what happens if our software
-	//crashes - we certainly don't want the drones to keep moving with their last-commanded velocity. Thus, we include a timout
-	//field for each virtual stick command. If another virtual stick command isn't received by the client App within the timeout
-	//window, it should issue it's own new virtual stick command with the same values as the most recent received command except
-	//with the 2D velocity fields set to 0. This way, commands also serve as a heartbeat signal from the GCS and if they stop coming,
-	//the drones hover (without changing modes though).
-	
-	//To use a ModeA virtual stick command, the drone should be configured as follows:
-	//DJIVirtualStickVerticalControlMode    = DJIVirtualStickVerticalControlModePosition
-	//DJIVirtualStickRollPitchControlMode   = DJIVirtualStickRollPitchControlModeVelocity
-	//DJIVirtualStickYawControlMode         = DJIVirtualStickYawControlModeAngle
-	//DJIVirtualStickFlightCoordinateSystem = DJIVirtualStickFlightCoordinateSystemGround
-	//In this mode, yaw is specified in an absolute sense, relative to North. Height is commanded in an absolute sense, relative to ground,
-	//2D position is controlled by commanding vehicle velocity in the North and East directions
-	struct VirtualStickCommand_ModeA {
-		float Yaw;       //Radians: 0 corresponds to North, positive is clockwise rotation
-		float V_North;   //m/s: North component of vehicle velocity (Acceptable range -15 to 15)
-		float V_East;    //m/s: East component of vehicle velocity (Acceptable range -15 to 15)
-		float HAG;       //m: Height above ground (vehicle altitude - takeoff altitude)
-		float timeout;   //s: If a new command isn't received within this time, the drone should hover
-	};
-	
-	//To use a ModeB virtual stick command, the drone should be configured as follows:
-	//DJIVirtualStickVerticalControlMode    = DJIVirtualStickVerticalControlModePosition
-	//DJIVirtualStickRollPitchControlMode   = DJIVirtualStickRollPitchControlModeVelocity
-	//DJIVirtualStickYawControlMode         = DJIVirtualStickYawControlModeAngle
-	//DJIVirtualStickFlightCoordinateSystem = DJIVirtualStickFlightCoordinateSystemBody
-	//In this mode, yaw is specified in an absolute sense, relative to North. Height is commanded in an absolute sense, relative to ground,
-	//2D position is controlled by commanding vehicle velocity in vehicle body frame (forward and vehicle right).
-	struct VirtualStickCommand_ModeB {
-		float Yaw;       //Radians: 0 corresponds to North, positive is clockwise rotation
-		float V_Forward; //m/s: Forward component of vehicle velocity (Acceptable range -15 to 15)
-		float V_Right;   //m/s: Vehicle-Right component of vehicle velocity (Acceptable range -15 to 15)
-		float HAG;       //m: Height above ground (vehicle altitude - takeoff altitude)
-		float timeout;   //s: If a new command isn't received within this time, the drone should hover
-	};
-	
-	//Waypoint objects are used as components of WaypointMission objects. Note that the speed field should be checked before putting it in a DJIWaypoint. If it is 0,
-	//it needs to be adjusted upwards to a default min value. If 0 is put in a DJIWaypoint speed field, the behavior changes and the speed gets overwritten by
-	//another value set at the mission level. We don't want this ridiculous behavior so we should make sure this is never actually 0.
-	struct Waypoint {
-		double Latitude;  //WGS84 Latitude of waypoint (Radians)
-		double Longitude; //WGS84 Longitude of waypoint (Radians)
-		double Altitude;  //WGS84 Altitude of waypoint (meters) - Note that this is actual altitude and not height above ground
-		
-		float CornerRadius; //Radius of arc (m) to make when cutting corner at this waypoint. Only used when CurvedTrajectory = true in the parent mission.
-		float Speed;        //Vehicle speed (m/s) between this waypoint and the next waypoint (0 < Speed <= 15)
-		
-		//Waypoint Actions: The drone can be told to execute certain actions once reaching a waypoint. Actions are not mutually exclusive (according to the
-		//docs anyways) so none, one, or multiple can be used in a waypoint. Important Note: Actions are only executed if CurvedTrajectory = false in the parent mission.
-		//For each action field, the value NaN indicates that the action should not be included. A non-NaN value generally indicates that an action should be added
-		//to the waypoint to accomplish the given goal. These fields correspond to the following waypoint actions:
-		//LoiterTime:  DJIWaypointActionTypeStay
-		//GimbalPitch: DJIWaypointActionTypeRotateGimbalPitch
-		float LoiterTime;   //Time (s) to hover at this waypoint (0 is equivilent to NaN and should result in the action not being included).
-		float GimbalPitch;  //Pitch of Gimbal, if connected (DJI Definition) in radians at waypoint.
-	};
-	
-	//This struct holds a waypoint mission for a single drone. The full DJI waypoint mission interface is relatively complex - we only implement the
-	//subset of it's functionality that we expect to be useful for our purposes. Note that for all these missions, the vehicle Heading Mode should be set to
-	//DJIWaypointMissionHeadingAuto, which orients the aircraft so the front is always pointed in the direction of motion.
-	//DJIWaypointMissionGotoWaypointMode should be set to DJIWaypointMissionGotoWaypointPointToPoint. This means the vehicle goes directly from it's
-	//current location to the first waypoint, rather than changing 2D position and altitude separately. If you want the vehicle to change position vertically,
-	//add a waypoint above or below another.
-	struct WaypointMission {
-		std::vector<Waypoint> Waypoints; //Waypoints to fly to, in order from the vehicle starting position (which is not included as a waypoint)
-		bool LandAtLastWaypoint; //If true, the vehicle lands after hitting the final waypoint. If false, the mission ends with the vehicle hovering in P flight mode.
-		bool CurvedTrajectory; //If true, cut corners when hitting waypoints, resulting in curved trajectory. If false, fly point-to-point, stopping at each waypoint.
-	};
 	
 	//Abstract class for drones - This means that an object of this type cannot actually exist... only objects of a derived type. We have two derived types:
 	//RealDrone and SimulatedDrone
@@ -155,7 +83,7 @@ namespace DroneInterface {
 			void SendPacket(Packet & packet);
 			void SendPacket_EmergencyCommand(uint8_t Action);
 			void SendPacket_CameraControl(uint8_t Action, double TargetFPS);
-			//void SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints);
+			void SendPacket_ExecuteWaypointMission(uint8_t LandAtEnd, uint8_t CurvedFlight, std::vector<Waypoint> Waypoints);
 			void SendPacket_VirtualStickCommand(uint8_t Mode, float Yaw, float V_x, float V_y, float HAG, float timeout);
 
 			bool GetPosition(double & Latitude, double & Longitude, double & Altitude, TimePoint & Timestamp) override;
@@ -198,13 +126,21 @@ namespace DroneInterface {
 			tacopie::tcp_client* m_client;
 			std::string m_serial;
 
+			unsigned int m_frame_num = 0;
+
+			bool m_packet_ct_received = false;
+			bool m_packet_et_received = false;
+			bool m_packet_img_received = false;
+			bool m_packet_ack_received = false;
+			bool m_packet_ms_received = false;
+
 			Packet* m_packet_fragment = new Packet();
 			
-			Packet_CoreTelemetry* m_packet_ct = new Packet_CoreTelemetry();
-			Packet_ExtendedTelemetry* m_packet_et = new Packet_ExtendedTelemetry();
-			Packet_Image* m_packet_img = new Packet_Image();
-			Packet_Acknowledgment* m_packet_ack = new Packet_Acknowledgment();
-			Packet_MessageString* m_packet_ms = new Packet_MessageString();
+			Packet_CoreTelemetry m_packet_ct;
+			Packet_ExtendedTelemetry m_packet_et;
+			Packet_Image m_packet_img;
+			Packet_Acknowledgment m_packet_ack;
+			Packet_MessageString m_packet_ms;
 
 			void DroneMain(void);
 	};

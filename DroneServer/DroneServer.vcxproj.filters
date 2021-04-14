@@ -24,6 +24,9 @@
     <ClInclude Include="DroneComms.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DroneDataStructures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
