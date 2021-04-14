@@ -15,11 +15,15 @@
 
 namespace DroneInterface {
 	RealDrone::RealDrone() : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
-		m_serial = "TEST_SERIAL!";
+		if (m_packet_et_received) {
+			m_serial = m_packet_et.DroneSerial;
+		}
 	}
 	
 	RealDrone::RealDrone(tacopie::tcp_client& client) : m_thread(&RealDrone::DroneMain, this), m_abort(false) {
-		m_serial = "TEST_SERIAL!!";
+		if (m_packet_et_received) {
+			m_serial = m_packet_et.DroneSerial;
+		}
 		m_client = &client;
 	}
 	
@@ -72,8 +76,7 @@ namespace DroneInterface {
 							this->m_packet_img_received = true;
 
 							cv::imshow("frame", this->m_packet_img.Frame);
-							cv::waitKey(1000);
-							//this->m_packet_img = &packet;
+							cv::waitKey(0);
 						}
 						else {
 							std::cerr << "Error: Tried to deserialize invalid Image packet." << std::endl;
@@ -95,11 +98,17 @@ namespace DroneInterface {
 							std::cout << this->m_packet_ms;
 							this->m_packet_ms_received = true;
 
-							SendPacket_EmergencyCommand(1);
-							std::cout << "SENT EMERGENCY COMMAND PACKET" << std::endl;
+							//SendPacket_EmergencyCommand(1);
+							//std::cout << "SENT EMERGENCY COMMAND PACKET" << std::endl;
 
-							SendPacket_CameraControl(0, 30);
-							std::cout << "SENT CAMERA CONTROL PACKET" << std::endl;
+							//SendPacket_CameraControl(0, 30);
+							//std::cout << "SENT CAMERA CONTROL PACKET" << std::endl;
+
+							//SendPacket_ExecuteWaypointMission(1, 0, )
+							//std::cout << "SENT EXECUTE WAYPOINT MISSION PACKET" << std::endl;
+
+							//SendPacket_VirtualStickCommand(0, 34.44, 12.2, 3.4, 500, 12);
+							//std::cout << "SENT VIRTUAL STICK COMAND PACKET" << std::endl;
 						}
 						else {
 							std::cerr << "Error: Tried to deserialize invalid Message String packet." << std::endl;
@@ -359,38 +368,6 @@ namespace DroneInterface {
 	
 	//Function for internal thread managing drone object
 	void RealDrone::DroneMain(void) {
-		//tacopie::tcp_server s;
-
-		//// 0.0.0.0 listens on all interfaces (127.0.0.1 only accessible from localhost)
-		//s.start("0.0.0.0", 3001, [this](const shared_ptr<tacopie::tcp_client>& client) -> bool {
-		//	string hostname = client->get_host();
-		//	uint32_t port = client->get_port();
-
-		//	cout << "New client from " + hostname + " on port " + to_string(port) << endl;
-		//	client->async_read({ 1024, bind(&RealDrone::on_new_message, this, client, placeholders::_1) });
-
-		//	return true;
-		//	});
-		////signal(SIGINT, &signint_handler);
-
-		//while (! m_abort) {
-		////	m_mutex.lock();
-
-		////	//Check to see if there is new data on the socket to process and process it.
-		////	//Decode received packets and update private state		
-
-		////	//If a new image was received and decoded, call the callbacks:
-		////	/*if (newImageProcessed) {
-		////		for (auto const & kv : m_ImageryCallbacks)
-		////			kv.second(NewImage, NewImageTimestamp);
-		////	}*/
-		////	
-		////	//At the end of the loop, if we did useful work do:
-		////	//m_mutex.unlock();
-		////	//If we did not do useful work do:
-		////	m_mutex.unlock();
-		//	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		//}
 	}
 }
 
